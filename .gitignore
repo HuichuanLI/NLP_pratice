@@ -4,3 +4,13 @@
 .idea/
 
 中文分词/机械分词/people-daily-1998/
+
+中文分词/CRF分词/CRF\+\+-0.58/
+
+中文分词/CRF分词/.DS_Store
+
+*.pyc
+
+中文分词/CRF分词/data/
+
+中文分词/CRF分词/model/
