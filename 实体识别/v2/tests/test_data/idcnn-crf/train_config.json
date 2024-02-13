@@ -1,0 +1,14 @@
+{
+    "max_len": 10,
+    "filters": 64,
+    "hidden_num": 256,
+    "embedding_size": 100,
+    "dropout_rate": 0.3,
+    "vocab_size": 11,
+    "label_size": 5,
+    "learning_rate": 0.001,
+    "batch_size": 2,
+    "epoch": 50,
+    "ckpt_name": "idcnn-crf-model.bin",
+    "vocab_name": "vocab.json"
+}
