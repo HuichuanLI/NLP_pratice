@@ -15,6 +15,6 @@
 
 中文分词/CRF分词/model/
 
-关键词提取/tests/test_data/seg_data/
+关键词提取/test_data/seg_data/
 
-关键词提取/tests/test_data/
+关键词提取/test_data/

@@ -6,7 +6,7 @@ from keywords.keyword import Keyword
 class TestKeyword(unittest.TestCase):
 
     def setUp(self):
-        self.keyword = Keyword('./tests/test_data/idf.txt')
+        self.keyword = Keyword('./test_data/idf.txt')
 
     def test_textrank(self):
         print('测试textrank方法')

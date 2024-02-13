@@ -7,8 +7,8 @@ class TestKeyword(unittest.TestCase):
 
     def setUp(self):
         self.topic_model = TopicModel()
-        self.seg_data_file = './tests/test_data/sports_1000_seg.txt'
-        self.lda_model_dir = './tests/test_data/lda'
+        self.seg_data_file = './test_data/sports_1000_seg.txt'
+        self.lda_model_dir = './test_data/lda'
 
     def test_lda(self):
         print('test_train_lda~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
