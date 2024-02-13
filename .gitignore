@@ -20,3 +20,13 @@
 关键词提取/test_data/
 
 实体识别/data/
+
+实体识别/v1/data/
+
+实体识别/v1/tests/.DS_Store
+
+实体识别/v2/.DS_Store
+
+实体识别/.DS_Store
+
+实体识别/v1/model/.DS_Store
