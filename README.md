@@ -29,5 +29,5 @@
 ## 文本摘要
 - MMR
 - text-rank
-- kmeans
+- Bert+kmeans
 
