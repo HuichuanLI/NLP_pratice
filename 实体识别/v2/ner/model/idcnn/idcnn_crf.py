@@ -41,7 +41,8 @@ class IDCNN_CRF(nn.Module):
         logits = self.out(out)
         # 根据logits，维特比计算最优标签路径
         best_path = self.crf.get_batch_best_path(logits, length)
-
+        print("best_path:{}".format(best_path))
+        print("logits:{}".format(logits.size()))
         if labels is not None:
             # 如果有labels，计算crf_loss
             loss = self.crf.negative_log_loss(inputs=logits, length=length, tags=labels)

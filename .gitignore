@@ -36,3 +36,11 @@
 实体识别/v2/ner/data/pd1998_msra_10w
 
 实体识别/v2/ner/.DS_Store
+
+实体识别/v2/model/chinese-bert-wwm/
+
+文本分类/data/
+
+实体识别/v2/tests/test_model/bertcrf/
+
+实体识别/v2/tests/test_data/idcnn-crf/
