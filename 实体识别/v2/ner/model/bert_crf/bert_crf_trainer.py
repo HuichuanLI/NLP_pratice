@@ -4,6 +4,7 @@ import math
 import torch
 from sklearn.utils import shuffle
 from transformers import AdamW
+from torch.nn import DataParallel
 
 from ner import logger
 from ner.model.base.base_trainer import BaseTrainer
@@ -13,11 +14,17 @@ from ner.model.vocab import Vocab
 
 class BertCRFTrainer(BaseTrainer):
     def __init__(self, pretrained_model_dir, model_dir, learning_rate=1e-3, ckpt_name='bert_model.bin',
-                 vocab_name='vocab.json'):
+                 vocab_name='vocab.json', enable_parallel=False,  # # 增加是否启用并行参数
+                 loss_type='crf_loss', focal_loss_gamma=2, focal_loss_alpha=None):  # # # 增加loss相关参数
         self.pretrained_model_dir = pretrained_model_dir
         self.model_dir = model_dir
         self.ckpt_name = ckpt_name
         self.vocab_name = vocab_name
+        self.enable_parallel = enable_parallel  # # 设置为实例变量
+
+        self.loss_type = loss_type  # # # 设置为实例变量
+        self.focal_loss_gamma = focal_loss_gamma
+        self.focal_loss_alpha = focal_loss_alpha
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -29,14 +36,21 @@ class BertCRFTrainer(BaseTrainer):
 
     def _build_model(self):
         """构建bert-crf模型"""
-        self.model = BertCRFModel(self.pretrained_model_dir, self.vocab.label_size)
+        self.model = BertCRFModel(
+            self.pretrained_model_dir, self.vocab.label_size,
+            # # # 传入loss相关参数
+            loss_type=self.loss_type, focal_loss_alpha=self.focal_loss_alpha, focal_loss_gamma=self.focal_loss_gamma
+        )
 
         # 设置AdamW优化器
         no_decay = ["bias", "LayerNorm.weight"]  # bias和LayerNorm不使用正则化
-        bert_parameters = self.model.named_parameters()
+        # 区分bert层的参数和crf层的参数
+        bert_parameters = [(name, param) for name, param in self.model.named_parameters() if 'crf' not in name]
+        crf_parameters = [(name, param) for name, param in self.model.named_parameters() if 'crf' in name]
         optimizer_grouped_parameters = [
             {'params': [p for n, p in bert_parameters if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-            {'params': [p for n, p in bert_parameters if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+            {'params': [p for n, p in bert_parameters if any(nd in n for nd in no_decay)], 'weight_decay': 0.0},
+            {'params': [p for n, p in crf_parameters], 'lr': self.learning_rate * 10}  # crf层使用较大的学习率
         ]
         self.optimizer = AdamW(optimizer_grouped_parameters, lr=self.learning_rate)
 
@@ -45,6 +59,9 @@ class BertCRFTrainer(BaseTrainer):
         self.vocab.set_id2vocab({_id: char for char, _id in self.vocab.vocab2id.items()})
         self.vocab.set_unk_vocab_id(self.vocab.vocab2id['[UNK]'])
         self.vocab.set_pad_vocab_id(self.vocab.vocab2id['[PAD]'])
+
+        if self.enable_parallel:  # # 启用并行，使用DataParallel封装model
+            self.model = DataParallel(self.model, device_ids=list(range(torch.cuda.device_count())))
 
         self.model.to(self.device)
 
@@ -56,7 +73,11 @@ class BertCRFTrainer(BaseTrainer):
             'batch_size': self.batch_size,
             'epoch': self.epoch,
             'ckpt_name': self.ckpt_name,
-            'vocab_name': self.vocab_name
+            'vocab_name': self.vocab_name,
+            'enable_parallel': self.enable_parallel,  # # 保存是否启用并行
+            'loss_type': self.loss_type,  # # # 保存到config
+            'focal_loss_gamma': self.focal_loss_gamma,
+            'focal_loss_alpha': self.focal_loss_alpha,
         }
         with open('{}/train_config.json'.format(self.model_dir), 'w') as f:
             f.write(json.dumps(config, indent=4))
@@ -67,8 +88,10 @@ class BertCRFTrainer(BaseTrainer):
         for text, labels in zip(batch_texts, batch_labels):
             assert isinstance(text, list)
             text = ' '.join(text)  # 确保输入encode_plus函数为文本
-            encoded_dict = self.model.bert_tokenizer.encode_plus(text, max_length=max_length, padding='max_length',
-                                                                 return_tensors='pt', truncation=True)
+            # # 根据是否并行，获取bert_tokenizer
+            bert_tokenizer = self.model.bert_tokenizer if not self.enable_parallel else self.model.module.bert_tokenizer
+            encoded_dict = bert_tokenizer.encode_plus(text, max_length=max_length, padding='max_length',
+                                                      return_tensors='pt', truncation=True)
             batch_input_ids.append(encoded_dict['input_ids'])
             batch_att_mask.append(encoded_dict['attention_mask'])
             batch_label_ids.append(
@@ -124,11 +147,13 @@ class BertCRFTrainer(BaseTrainer):
                 batch_input_ids, batch_att_mask, batch_label_ids = self._transform_batch(text_batch,
                                                                                          labels_batch,
                                                                                          max_length=batch_max_len)
-                logits, loss = self.model(batch_input_ids, batch_att_mask, labels=batch_label_ids)
+                best_paths, loss = self.model(batch_input_ids, batch_att_mask, labels=batch_label_ids)
+                if self.enable_parallel:  # # 如果启用并行，需将多张卡返回的sub-batch loss相加，得到总batch的loss
+                    loss = loss.sum()
                 loss.backward()
                 self.optimizer.step()
 
-                train_acc = self._get_acc_one_step(logits, batch_label_ids)
+                train_acc = self._get_acc_one_step(best_paths, batch_label_ids)
                 valid_acc, valid_loss = self.validate(validate_texts, validate_labels, sample_size=batch_size)
                 loss_buff.append(valid_loss)
                 if len(loss_buff) > max_loss_num:
@@ -145,7 +170,9 @@ class BertCRFTrainer(BaseTrainer):
 
                 if avg_loss and avg_loss < best_loss:
                     best_loss = avg_loss
-                    torch.save(self.model.state_dict(), '{}/{}'.format(self.model_dir, self.ckpt_name))
+                    # # 根据是否启用并行，获得state_dict
+                    state_dict = self.model.state_dict() if not self.enable_parallel else self.model.module.state_dict()
+                    torch.save(state_dict, '{}/{}'.format(self.model_dir, self.ckpt_name))
                     logger.info("model saved")
 
         logger.info("finished")
@@ -172,16 +199,19 @@ class BertCRFTrainer(BaseTrainer):
             batch_input_ids, batch_att_mask, batch_label_ids = self._transform_batch(batch_texts,
                                                                                      batch_labels,
                                                                                      max_length=batch_max_len)
-            logits, loss = self.model(batch_input_ids, batch_att_mask, labels=batch_label_ids)
-            acc = self._get_acc_one_step(logits, batch_label_ids)
+            best_paths, loss = self.model(batch_input_ids, batch_att_mask, labels=batch_label_ids)
+            if self.enable_parallel:  # # 如果启用并行，需将多张卡返回的sub-batch loss相加，得到总batch的loss
+                loss = loss.sum()
+            acc = self._get_acc_one_step(best_paths, batch_label_ids)
             return acc, loss
 
-    def _get_acc_one_step(self, logits, labels_batch):
+    def _get_acc_one_step(self, labels_predict_batch, labels_batch):
+        # 直接根据预测的labels和实际的labels计算acc（而不是根据logits）
         total, correct = 0, 0
-        for logit, labels in zip(logits, labels_batch):
-            active_logit = logit[labels != self.vocab.pad_tag_id][1:-1]  # 去除pad部分、[CLS]和[SEP]部分
+        for labels_predict, labels in zip(labels_predict_batch, labels_batch):
+            active_labels_predict = labels_predict[labels != self.vocab.pad_tag_id][1:-1]  # 去除pad部分、[CLS]和[SEP]部分
             active_labels = labels[labels != self.vocab.pad_tag_id][1:-1]
             total += len(active_labels)
-            correct += (torch.argmax(active_logit, dim=1) == active_labels).sum().item()
+            correct += (active_labels_predict.cpu() == active_labels.cpu()).sum().item()
         accuracy = correct / total
         return float(accuracy)
