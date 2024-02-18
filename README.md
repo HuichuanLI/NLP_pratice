@@ -1,5 +1,5 @@
 # NLP_pratice
-#### NLP 的一些经典实现
+#### NLP 的任务一些经典实现
 
 ## 中文分词
 - 机械分词
@@ -30,4 +30,8 @@
 - MMR
 - text-rank
 - Bert+kmeans
+- 抽取任务
+
+
+
 

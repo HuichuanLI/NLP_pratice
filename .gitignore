@@ -44,3 +44,13 @@
 实体识别/v2/tests/test_model/bertcrf/
 
 实体识别/v2/tests/test_data/idcnn-crf/
+
+中文分词/Bert分词/src/segment/data/hmm_pos_1998/
+
+中文分词/Bert分词/src/segment/data/hmm_pos_enhance_1998/
+
+中文分词/Bert分词/src/segment/data/hmm_seg_1998/
+
+中文分词/Bert分词/src/segment/data/pd1998_msra_seg_bilstmcrf/
+
+中文分词/Bert分词/src/segment/data/
