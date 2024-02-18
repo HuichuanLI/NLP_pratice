@@ -54,3 +54,9 @@
 中文分词/Bert分词/src/segment/data/pd1998_msra_seg_bilstmcrf/
 
 中文分词/Bert分词/src/segment/data/
+
+提示学习/ProtoNet/data/thunews/
+
+提示学习/ProtoNet/data/
+
+提示学习/MyPET/data/
