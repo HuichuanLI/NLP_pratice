@@ -1,6 +1,8 @@
 # NLP_pratice
 #### NLP 的任务一些经典实现
-
+## NLP的一些basline
+- word2vec
+- 
 ## 中文分词
 - 机械分词
 - CRF分词
@@ -36,4 +38,3 @@
 ## 提示学习
 - ProtoNet
 - prompt learning
-- 
