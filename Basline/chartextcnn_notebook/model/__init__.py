@@ -1,0 +1,1 @@
+from .chartextcnn import CharTextCNN

@@ -2,7 +2,16 @@
 #### NLP 的任务一些经典实现
 ## NLP的一些basline
 - word2vec
-- 
+- GLOVE
+- CHAR2W
+- TEXTCNN
+- CHARTEXT
+- FASTEXT
+- NMT
+- ATTENTION-NMT
+- HAN_ATTENTION
+- SGM
+
 ## 中文分词
 - 机械分词
 - CRF分词
