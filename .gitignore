@@ -82,3 +82,7 @@ Basline/HAN/model/
 Basline/attentionNMT/data/iwslt14/
 
 Basline/attentionNMT/data/
+
+Basline/HAN/.DS_Store
+
+Basline/HAN/data/.DS_Store
