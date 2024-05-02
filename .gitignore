@@ -68,3 +68,17 @@ Basline/glove_notebook/data/
 Basline/c2w_notebook/data/
 
 Basline/chartextcnn_notebook/data/
+
+Basline/fasttext_notebook/data/AG/
+
+Basline/deep_nmt_notebook/data/iwslt14/
+
+Basline/deep_nmt_notebook/data/
+
+Basline/HAN/data/imdb/
+
+Basline/HAN/model/
+
+Basline/attentionNMT/data/iwslt14/
+
+Basline/attentionNMT/data/
