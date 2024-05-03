@@ -32,6 +32,10 @@
 - Bert-CRF
 
 ## 文本分类
+- textCNN
+- RNN 
+- fastxt
+- TreeLSTM
 - Xgboost
 - RF
 - Bert（focal_loss）
