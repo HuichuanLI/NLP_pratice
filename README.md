@@ -51,3 +51,15 @@
 ## 提示学习
 - ProtoNet
 - prompt learning
+
+## 预训练模型
+- transformer
+- transformer-xl
+- elmo
+- gpt
+- bert
+- ulmfit
+- albert
+- mass
+- xlnet
+- electra
